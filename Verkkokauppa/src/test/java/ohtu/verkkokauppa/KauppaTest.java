@@ -85,5 +85,55 @@ public class KauppaTest {
         
         verify(pankki).tilisiirto(eq("petteri"), eq(653), eq("98765"), anyString(), eq(5));
     }
+    
+    @Test
+    public void aloitaAsiointiNollaaEdellisenOstoksenTiedot() {
+        when(viite.uusi()).thenReturn(5).thenReturn(6);
+        when(varasto.saldo(1)).thenReturn(10);
+        when(varasto.haeTuote(1)).thenReturn(new Tuote(1, "maito", 5));
+        
+        Kauppa k = new Kauppa(varasto, pankki, viite);
+        
+        k.aloitaAsiointi();
+        k.lisaaKoriin(1);
+        k.lisaaKoriin(1);
+        k.tilimaksu("petteri", "98765");
+        
+        verify(pankki).tilisiirto(eq("petteri"), eq(5), eq("98765"), anyString(), eq(10));
+        
+        k.aloitaAsiointi();
+        k.lisaaKoriin(1);
+        k.tilimaksu("maija", "13579");
+        
+        verify(pankki).tilisiirto(eq("maija"), eq(6), eq("13579"), anyString(), eq(5));
+    }
+    
+    @Test
+    public void jokaiselleMaksuTapahtumalleHaetaanUusiViite() {
+        when(varasto.saldo(1)).thenReturn(10);
+        when(varasto.haeTuote(1)).thenReturn(new Tuote(1, "maito", 5));
+        
+        Kauppa k = new Kauppa(varasto, pankki, viite);
+        
+        k.aloitaAsiointi();
+        k.lisaaKoriin(1);
+        k.tilimaksu("petteri", "98765");
+        
+        verify(viite, times(1)).uusi();
+    }
+    
+    @Test
+    public void yhdenTuotteenOttoJaPalautusEiMaksaMitaan() {
+        when(varasto.saldo(1)).thenReturn(10);
+        when(varasto.haeTuote(1)).thenReturn(new Tuote(1, "maito", 5));
+        
+        Kauppa k = new Kauppa(varasto, pankki, viite);
+        k.aloitaAsiointi();
+        k.lisaaKoriin(1);
+        k.poistaKorista(1);
+        k.tilimaksu("petteri", "98765");
+        
+        verify(pankki).tilisiirto(eq("petteri"), anyInt(), eq("98765"), anyString(), eq(0));
+    }
 }
 
